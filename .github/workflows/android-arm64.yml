@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
-      contents: read
+      contents: write
       actions: write
     steps:
       - uses: actions/checkout@v4
@@ -75,6 +75,34 @@ jobs:
           path: build/apk/device-test/
           retention-days: 1
           if-no-files-found: ignore
+      - name: Publish a persistent direct APK download after tests pass
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WRITER_REPOSITORY: ${{ github.repository }}
+        run: |
+          tag="writer-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          tar -czf build/apk/font-licenses.tar.gz -C build/apk font-licenses
+          cat > "$RUNNER_TEMP/writer-release.md" <<EOF
+          Tested development build for ARM64 Android tablets, with a desktop Writer ribbon and offline DOCX editing.
+
+          Download **Desktop-Office-Writer-arm64.apk** below and install it. The APK link does not use the one-day Actions artifact retention.
+
+          The cloud checks passed DOCX open/edit/table insertion/save/reopen/read-only handling, native keyboard typing with Ctrl+B/Ctrl+S/Ctrl+Alt+T, page rendering, representative Noto/DejaVu font enumeration, and full-width Home formatting controls. These are targeted smoke checks, not certification of all Word features or physical Pad 7 input.
+
+          Known issue: black document table borders still have poor contrast on a dark page. The table-picker contrast is improved; saved document borders keep their original colours.
+
+          Updates use the cached development signing key. This build retains com.collabora.libreoffice and cannot update the officially signed Collabora app.
+
+          Source commit: ${GITHUB_SHA}
+          Build and diagnostics: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          Engine provenance, font licenses, checksums and modified source are attached below.
+          EOF
+          mapfile -d '' -t assets < <(find build/apk -maxdepth 1 -type f -print0)
+          gh release create "$tag" "${assets[@]}" --repo "$WRITER_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "Writer development build ${GITHUB_RUN_NUMBER}" \
+            --notes-file "$RUNNER_TEMP/writer-release.md" --latest
+          echo "Direct APK: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/latest/download/Desktop-Office-Writer-arm64.apk" >> "$GITHUB_STEP_SUMMARY"
       - name: Keep the latest Writer artifact within the free storage allowance
         env:
           GH_TOKEN: ${{ github.token }}

@@ -17,6 +17,14 @@ button.ui-tab.notebookbar {
     overflow-x: auto;
     scrollbar-width: thin;
 }
+/* A 36.8vw Styles gallery forces Font/Paragraph into menus on a tablet.
+   Keep the original live gallery and its scroll/dropdown controls; only limit
+   its Home-ribbon footprint. Style dialogs and dropdowns keep their own size. */
+#Home-container #stylesview {
+    width: clamp(124px, 19.3vw, 246px);
+    min-width: 124px !important;
+    max-width: 246px;
+}
 label.notebookbar, span.notebookbar.static-label {
     font-size: 13px;
 }

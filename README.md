@@ -4,6 +4,10 @@
 `desktop-office-writer-arm64` from the finished run's Artifacts section, unzip it,
 and install `Desktop-Office-Writer-arm64.apk` on your ARM64 Android tablet (Android 8+).
 
+After a tested main-branch build is published, the APK is also available directly from
+[the latest development release](https://github.com/mageorge808-rgb/desktop-office-writer/releases/latest).
+This release download does not expire after one day and does not require unzipping an Actions artifact.
+
 This is a real offline DOCX editor using the official precompiled Collabora Office
 26.04.3.1 engine, Java implementation and document resources as a matched set.
 The workflow compiles a small Java integration layer and packages the APK.
@@ -49,6 +53,7 @@ This is a development distribution, not a production signing setup.
 - DOCX-only launcher: **Open DOCX**, **New DOCX**, Ctrl+O and Ctrl+N, also available while editing.
 - Ctrl+Alt+T requests the native Table Properties dialog when its command is enabled.
 - Dark mode on install/upgrade; persistent appearance choice and dark launcher controls.
+- A compact Home Styles gallery gives Font and Paragraph controls room on wide windows.
 - Cached, licensed Noto/DejaVu fonts; no repeated copying on every document open.
 - Android file picker and actual read/write grants; no broad all-files permission.
 - New documents copy the real upstream DOCX template into the selected local URI.

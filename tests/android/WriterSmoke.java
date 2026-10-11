@@ -140,8 +140,10 @@ public class WriterSmoke extends Instrumentation {
                 }
                 if(!fonts)throw new IOException("The real engine font list is missing packaged Noto/DejaVu fonts");
                 results.putString("fonts","Noto Sans; DejaVu Sans");
-                if(!"true".equals(eval("(()=>{const font=document.getElementById('fontnamecombobox');const paragraph=document.getElementById('home-left-para');return !!font&&!!paragraph&&font.offsetWidth>0&&paragraph.offsetWidth>0;})()")))
+                if(!"true".equals(eval("(()=>{const font=Array.from(document.querySelectorAll('#home-font-content input, #home-font-content select, #home-font-content [role=combobox]')).some(el=>el.offsetWidth>0);const paragraph=Array.from(document.querySelectorAll('#home-paragraph-content button')).some(el=>el.offsetWidth>0);return font&&paragraph;})()")))
                     throw new IOException("Font/Paragraph controls are hidden in the full-width desktop Home ribbon");
+                if(!"true".equals(eval("document.querySelectorAll('#Home-container #stylesview .ui-iconview-entry').length>0")))
+                    throw new IOException("The original Styles gallery did not receive live entries");
                 eval("app.map.sendUnoCommand('.uno:InsertText',{Text:{type:'string',value:'CI_WRITER_LOCAL_SAVE'}}); true");
                 Thread.sleep(1500);
                 eval("app.map.sendUnoCommand('.uno:InsertTable?Columns=3&Rows=2'); true");
