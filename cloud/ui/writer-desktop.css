@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 /* Word-inspired chrome only: never scale the document canvas or its input layer. */
-:root {
-    --cool-font: Arial, "Liberation Sans", sans-serif;
-    --default-font-size: 13px;
+.notebookbar {
     --tb-min-fs: 12px;
     --tb-max-fs: 14px;
 }
@@ -20,7 +18,39 @@ button.ui-tab.notebookbar {
     scrollbar-width: thin;
 }
 label.notebookbar, span.notebookbar.static-label {
-    font-size: 12px;
+    font-size: 13px;
+}
+/* Keep dark controls visible without recoloring native document tiles. */
+[data-theme='dark'] .inserttable-grid {
+    --color-border: #a6b3c2;
+    --color-background-lighter: #242a33;
+    --color-primary: #8ab4f8;
+    --color-primary-lighter: #365c87;
+}
+.inserttable-grid .row {
+    display: flex;
+    gap: 3px;
+    height: 25px;
+    margin: 3px 0;
+}
+.inserttable-grid .col {
+    box-sizing: border-box;
+    flex: 0 0 25px;
+    width: 25px;
+    height: 25px;
+    margin: 0;
+    padding: 0;
+    float: none;
+    cursor: pointer;
+}
+.inserttable-grid .col:focus-visible {
+    outline: 2px solid #8ab4f8;
+    outline-offset: 1px;
+}
+[data-theme='dark'] .jsdialog-window {
+    --color-border: #8492a6;
+    --color-border-dark: #8492a6;
+    --color-border-darker: #a6b3c2;
 }
 @media (max-width: 900px) {
     button.ui-tab.notebookbar { padding-inline: 8px; font-size: 12px; }

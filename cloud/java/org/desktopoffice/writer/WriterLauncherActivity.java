@@ -22,12 +22,19 @@ public class WriterLauncherActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        android.content.SharedPreferences prefs = getSharedPreferences("EXPLORER_PREFS", MODE_PRIVATE);
+        if (!prefs.getBoolean("WRITER_DARK_DEFAULT_V2", false))
+            prefs.edit().putInt("NIGHT_MODE", 2).putBoolean("WRITER_DARK_DEFAULT_V2", true).apply();
+        getWindow().setStatusBarColor(0xff202124);
+        getWindow().setNavigationBarColor(0xff202124);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setBackgroundColor(0xff202124);
         int padding = (int) (24 * getResources().getDisplayMetrics().density);
         layout.setPadding(padding, padding, padding, padding);
         TextView title = new TextView(this);
         title.setText("Desktop Office Writer\nOffline DOCX editor · mouse and keyboard");
+        title.setTextColor(0xfff1f3f4);
         layout.addView(title);
         Button open = new Button(this);
         open.setText("Open DOCX…  (Ctrl+O)");
@@ -38,10 +45,9 @@ public class WriterLauncherActivity extends Activity {
         create.setOnClickListener(view -> pick(true));
         layout.addView(create);
         Button theme = new Button(this);
-        android.content.SharedPreferences prefs = getSharedPreferences("EXPLORER_PREFS", MODE_PRIVATE);
-        theme.setText(prefs.getInt("NIGHT_MODE", 1) == 2 ? "Appearance: Dark" : "Appearance: Light");
+        theme.setText(prefs.getInt("NIGHT_MODE", 2) == 2 ? "Appearance: Dark" : "Appearance: Light");
         theme.setOnClickListener(view -> {
-            int next = prefs.getInt("NIGHT_MODE", 1) == 2 ? 1 : 2;
+            int next = prefs.getInt("NIGHT_MODE", 2) == 2 ? 1 : 2;
             prefs.edit().putInt("NIGHT_MODE", next).apply();
             theme.setText(next == 2 ? "Appearance: Dark" : "Appearance: Light");
         });

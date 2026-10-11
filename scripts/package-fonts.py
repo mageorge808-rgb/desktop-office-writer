@@ -32,13 +32,18 @@ def package_fonts(decoded, output):
             destination = target / source.name
             if destination.exists(): raise ValueError('Duplicate font filename: ' + source.name)
             shutil.copyfile(source, destination)
-            inventory.append(dict(file=source.name, family=family, package=package, version=version,
+            inventory.append(dict(file=source.name, family=family, package=package, version=version, size=source.stat().st_size,
                                   sha256=hashlib.sha256(source.read_bytes()).hexdigest()))
     if not inventory: raise ValueError('No fonts packaged')
     (reports / 'fonts.json').write_text(json.dumps(inventory, indent=2) + '\n')
     # Embed licensing and provenance in the APK as well as the downloadable archive.
     shutil.copytree(license_dir, target.parent / 'writer-font-licenses', dirs_exist_ok=True)
     shutil.copyfile(reports / 'fonts.json', target.parent / 'writer-fonts.json')
+    config = Path(decoded) / 'assets/unpack/etc/fonts/fonts.conf'
+    identity = hashlib.sha256((reports / 'fonts.json').read_bytes() + config.read_bytes()).hexdigest()
+    index = identity + '\n' + str(config.stat().st_size) + '\t@config\n'
+    index += ''.join(str(font['size']) + '\t' + font['file'] + '\n' for font in inventory)
+    (target.parent / 'writer-fonts.index').write_text(index, encoding='utf-8')
     print(f'Validated and packaged {len(inventory)} fonts')
 
 if __name__ == '__main__': package_fonts(*sys.argv[1:])

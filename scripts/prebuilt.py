@@ -161,8 +161,13 @@ def verify_payload(original, result):
             after.getinfo(path)
         inventory = json.loads(after.read('assets/writer-fonts.json'))
         if not inventory: raise ValueError('Missing additional fonts')
+        index = after.read('assets/writer-fonts.index').decode('utf-8').splitlines()
+        expected = hashlib.sha256(after.read('assets/writer-fonts.json') + after.read('assets/unpack/etc/fonts/fonts.conf')).hexdigest()
+        if not index or index[0] != expected: raise ValueError('Invalid font cache identity')
         for font in inventory:
             payload = after.read('assets/writer-fonts/' + font['file'])
+            if len(payload) != font['size'] or str(font['size']) + '\t' + font['file'] not in index:
+                raise ValueError('Font size/index mismatch: ' + font['file'])
             if hashlib.sha256(payload).hexdigest() != font['sha256']:
                 raise ValueError('Font checksum mismatch: ' + font['file'])
             after.getinfo('assets/writer-font-licenses/' + font['package'] + '-copyright.txt')
