@@ -81,6 +81,13 @@ public class WriterSmoke extends Instrumentation {
                 String state=eval("JSON.stringify({app:!!window.app,map:!!(window.app&&app.map),loaded:window.app&&app.map&&app.map._docLoaded,mode:window.app&&app.map&&app.map.isEditMode(),dialogs:Array.from(document.querySelectorAll('.jsdialog-window')).map(el=>({id:el.id,visible:!!el.offsetWidth})),text:document.body.innerText.slice(-1600)})");
                 output.write(state.getBytes("UTF-8"));
             }
+            // Keep the tiny generated document alongside the screenshot so a
+            // rendering regression has a reproducible fixture, not just a log.
+            try(InputStream input=getTargetContext().getContentResolver().openInputStream(fixture);
+                OutputStream output=new FileOutputStream(new File(directory,"native-fixture.docx"))) {
+                byte[] bytes=new byte[8192]; int count;
+                while((count=input.read(bytes))!=-1)output.write(bytes,0,count);
+            }
             Bitmap screenshot=getUiAutomation().takeScreenshot();
             if(screenshot!=null)try(OutputStream output=new FileOutputStream(new File(directory,"native-"+phase+".png"))) {
                 screenshot.compress(Bitmap.CompressFormat.PNG,100,output); screenshot.recycle();
@@ -103,7 +110,7 @@ public class WriterSmoke extends Instrumentation {
         while(SystemClock.uptimeMillis()<deadline) {
             runOnMainSync(()->web=findWeb(editor.getWindow().getDecorView()));
             String mode=phase.equals("readonly") ? "!app.map.isEditMode()" : "app.map.isEditMode()";
-            if(web!=null && "true".equals(eval("Boolean(window.app && app.map && app.map._docLoaded && app.map._docLayer && app.map.getDocType()==='text' && "+mode+")")))return;
+            if(web!=null && "true".equals(eval("Boolean(window.app && app.map && app.map._docLoaded && app.map._docLayer && app.map.getDocType()==='text' && "+mode+" && app.map._docLayer._painter && app.map._docLayer._painter._tilesSection && app.map._docLayer._painter._tilesSection.haveAllTilesInView())")))return;
             Thread.sleep(1000);
         }
         throw new IOException("Native Writer document did not become editable in four minutes");
@@ -122,6 +129,14 @@ public class WriterSmoke extends Instrumentation {
             if(!"true".equals(eval("document.documentElement.getAttribute('data-theme')==='dark' || document.body.getAttribute('data-theme')==='dark'")))
                 throw new IOException("Dark theme is not active");
             if(phase.equals("edit")) {
+                long fontsDeadline=SystemClock.uptimeMillis()+30000;
+                boolean fonts=false;
+                while(SystemClock.uptimeMillis()<fontsDeadline) {
+                    if("true".equals(eval("(()=>{const names=Object.keys(app.map.getToolbarCommandValues('.uno:CharFontName')||{});return names.includes('Noto Sans')&&names.includes('DejaVu Sans');})()"))) {fonts=true;break;}
+                    Thread.sleep(500);
+                }
+                if(!fonts)throw new IOException("The real engine font list is missing packaged Noto/DejaVu fonts");
+                results.putString("fonts","Noto Sans; DejaVu Sans");
                 eval("app.map.sendUnoCommand('.uno:InsertText',{Text:{type:'string',value:'CI_WRITER_LOCAL_SAVE'}}); true");
                 Thread.sleep(1500);
                 eval("app.map.sendUnoCommand('.uno:InsertTable?Columns=3&Rows=2'); true");
@@ -130,8 +145,17 @@ public class WriterSmoke extends Instrumentation {
                 waitSaved("CI_WRITER_LOCAL_SAVE",true);
             } else if(!documentXML().contains("CI_WRITER_LOCAL_SAVE"))throw new IOException("Saved marker missing on reopen");
             if(phase.equals("keyboard")) {
-                eval("app.map.focus(); true");
-                Thread.sleep(1000);
+                runOnMainSync(()->web.requestFocus());
+                // Emulated devices can report only an on-screen keyboard. Accept
+                // input explicitly, as a real click into the document does.
+                eval("app.map.focus(true); true");
+                long focusDeadline=SystemClock.uptimeMillis()+15000;
+                boolean focused=false;
+                while(SystemClock.uptimeMillis()<focusDeadline) {
+                    if("true".equals(eval("document.activeElement===app.map._textInput._textArea"))) {focused=true;break;}
+                    Thread.sleep(250);
+                }
+                if(!focused)throw new IOException("Native keyboard test could not focus the real document input");
                 keyChord(KeyEvent.KEYCODE_MOVE_END,false);
                 keyChord(KeyEvent.KEYCODE_B,false);
                 KeyEvent[] typing=KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD).getEvents(" ci_keyboard ".toCharArray());
@@ -141,8 +165,17 @@ public class WriterSmoke extends Instrumentation {
                 keyChord(KeyEvent.KEYCODE_S,false);
                 waitSaved("ci_keyboard",true);
                 if(!markerIsBold("ci_keyboard"))throw new IOException("Ctrl+B did not persist bold keyboard text");
-                if(!"true".equals(eval("app.map.stateChangeHandler.getItemValue('.uno:TableDialog')==='enabled'")))
-                    throw new IOException("Table Properties command is unavailable inside the table");
+                // Ctrl+End can put the caret in the paragraph after the table.
+                // Navigate back into the existing table before testing its dialog.
+                eval("app.map.sendUnoCommand('.uno:GoToStartOfDoc'); app.map.sendUnoCommand('.uno:JumpToNextTable'); true");
+                long tableDeadline=SystemClock.uptimeMillis()+15000;
+                boolean inTable=false;
+                while(SystemClock.uptimeMillis()<tableDeadline) {
+                    if("true".equals(eval("app.map.stateChangeHandler.getItemValue('.uno:TableDialog')==='enabled'"))) {inTable=true;break;}
+                    Thread.sleep(250);
+                }
+                if(!inTable)throw new IOException("Table Properties command is unavailable inside the table");
+                eval("app.map.focus(true); true");
                 keyChord(KeyEvent.KEYCODE_T,true);
                 long dialogDeadline=SystemClock.uptimeMillis()+15000;
                 boolean dialog=false;

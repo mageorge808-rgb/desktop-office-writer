@@ -17,11 +17,12 @@ const document={querySelector:()=>dialog};
 SCRIPT
 const event=()=>({ctrlKey:true,altKey:true,shiftKey:false,code:'KeyT',repeat:false,isComposing:false,preventDefault(){this.prevented=true;},stopPropagation(){this.stopped=true;}});
 let good=event();keydown(good);assert.deepEqual(sends,['.uno:TableDialog']);assert.ok(good.prevented&&good.stopped);
+let android=event();android.code='';android.key='t';keydown(android);assert.ok(android.prevented);assert.equal(sends.length,2);
 for(const property of ['repeat','isComposing','shiftKey']){let e=event();e[property]=true;keydown(e);assert.ok(!e.prevented);}
 enabled=false;keydown(event());enabled=true;edit=false;keydown(event());edit=true;dialog=true;keydown(event());dialog=false;
 let altgr=event();altgr.getModifierState=key=>key==='AltGraph';keydown(altgr);assert.ok(!altgr.prevented);
 window.ThisIsTheAndroidApp=false;keydown(event());
-assert.equal(sends.length,1);
+assert.equal(sends.length,2);
 '''.replace('SCRIPT',script)
         subprocess.run([os.environ.get('NODE_BINARY','node'),'-e',harness],check=True)
 
