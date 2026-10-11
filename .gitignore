@@ -1,0 +1,8 @@
+/build/
+/vendor/
+/binary-inspect/
+/*.apk
+/*.jar
+/*.zip
+__pycache__/
+*.pyc
