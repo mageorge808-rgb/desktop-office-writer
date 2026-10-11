@@ -11,6 +11,9 @@ prebuilt = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prebuilt)
 
 class PrebuiltTests(unittest.TestCase):
+    def test_cloud_shell_script_has_unix_line_endings(self):
+        self.assertNotIn(b'\r', (ROOT/'scripts/build-writer-cloud.sh').read_bytes())
+
     def test_android_uses_desktop_without_changing_native_transport(self):
         original = (ROOT/'tests/fixtures/prebuilt-global.js').read_text(encoding='utf-8')
         patched = prebuilt.desktop_js(original)
