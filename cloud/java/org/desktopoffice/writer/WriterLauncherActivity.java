@@ -82,7 +82,8 @@ public class WriterLauncherActivity extends Activity {
             } catch (IOException | SecurityException error) { show("Could not create the document: " + error.getMessage()); return; }
         }
         Intent editor = new Intent(Intent.ACTION_EDIT).setClass(this, WriterEditorActivity.class)
-                .setDataAndType(uri, DOCX).setClipData(ClipData.newRawUri("document", uri)).addFlags(grants);
+                .setDataAndType(uri, DOCX).addFlags(grants);
+        editor.setClipData(ClipData.newRawUri("document", uri));
         startActivity(editor);
     }
 

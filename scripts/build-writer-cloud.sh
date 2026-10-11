@@ -48,11 +48,14 @@ fi
 python3 scripts/prebuilt.py verify-result "$WORK/original.apk" build/apk/Desktop-Office-Writer-arm64.apk
 python3 scripts/verify-apk.py build/apk
 python3 - <<'PY'
-import hashlib,json,pathlib,zipfile
+import hashlib,json,pathlib,zipfile,xml.etree.ElementTree as ET
 root=pathlib.Path('build/apk'); apk=root/'Desktop-Office-Writer-arm64.apk'
 with apk.open('rb') as stream: digest=hashlib.file_digest(stream,'sha256').hexdigest()
 (root/'SHA256SUMS').write_text(digest+'  '+apk.name+'\n')
 lock=json.load(open('prebuilt.lock.json'))
+strings=ET.parse('build/cloud/decoded/res/values/strings.xml').getroot()
+lock['app_source_build_hash']=next((s.text for s in strings.findall('string') if s.get('name')=='version_hash'),None)
+print('Original Android app source build hash:',lock['app_source_build_hash'])
 with zipfile.ZipFile('build/cloud/original.apk') as original:
     for path,name in [('assets/license.html','license.html'),('assets/notice.txt','NOTICE-engine.txt')]:
         (root/name).write_bytes(original.read(path))
