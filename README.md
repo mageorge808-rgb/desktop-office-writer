@@ -10,6 +10,9 @@ The workflow compiles only two small integration classes and packages the APK.
 It never compiles LibreOffice, uses no self-hosted runner, and requires no paid service.
 Use a **public GitHub repository** for free standard GitHub-hosted runner execution.
 
+First verified cloud build: https://github.com/mageorge808-rgb/desktop-office-writer/actions/runs/38125968407
+Nine tests and all APK compilation/packaging/signature checks passed. Hardware tests remain pending.
+
 ## Build and download
 
 1. Open this repository's **Actions** tab. Enable workflows if GitHub asks.
@@ -81,5 +84,6 @@ or Microsoft product. No Microsoft assets are used.
 
 Official distribution: https://www.collaboraoffice.com/downloads/fdroid/repo/
 Official source/build documentation: https://github.com/CollaboraOnline/online.mirror
+Matching precompiled release source: https://github.com/CollaboraOnline/online.mirror/tree/20a46c332c380925803a1fe538a545c6f9b8fce7
 GitHub free runners: https://docs.github.com/en/actions/reference/runners/github-hosted-runners
 
