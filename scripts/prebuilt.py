@@ -113,6 +113,8 @@ def verify_original(apk):
         signature = 'Lorg/libreoffice/androidlib/LOActivity;->createCOOLWSD(' + 'Ljava/lang/String;'*3 + \
                     'Landroid/content/res/AssetManager;' + 'Ljava/lang/String;'*3 + ')V'
         if signature not in methods: raise ValueError('JNI method no longer matches the compile-only stub')
+        if 'Lorg/libreoffice/androidlib/LOActivity;->loadDocument()V' not in methods:
+            raise ValueError('Scoped-document compatibility loader no longer matches the pinned APK')
         # Validate the customization anchors before the decode/build job spends resources.
         desktop_js(archive.read('assets/dist/global.js').decode('utf-8'))
 

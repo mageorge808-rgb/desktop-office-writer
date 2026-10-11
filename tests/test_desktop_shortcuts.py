@@ -19,6 +19,7 @@ const event=()=>({ctrlKey:true,altKey:true,shiftKey:false,code:'KeyT',repeat:fal
 let good=event();keydown(good);assert.deepEqual(sends,['.uno:TableDialog']);assert.ok(good.prevented&&good.stopped);
 for(const property of ['repeat','isComposing','shiftKey']){let e=event();e[property]=true;keydown(e);assert.ok(!e.prevented);}
 enabled=false;keydown(event());enabled=true;edit=false;keydown(event());edit=true;dialog=true;keydown(event());dialog=false;
+let altgr=event();altgr.getModifierState=key=>key==='AltGraph';keydown(altgr);assert.ok(!altgr.prevented);
 window.ThisIsTheAndroidApp=false;keydown(event());
 assert.equal(sends.length,1);
 '''.replace('SCRIPT',script)

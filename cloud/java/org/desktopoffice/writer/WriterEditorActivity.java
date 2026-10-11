@@ -7,9 +7,36 @@ import java.io.IOException;
 import android.os.Bundle;
 import android.content.Intent;
 import android.view.KeyEvent;
+import android.net.Uri;
+import android.os.Build;
+import java.io.InputStream;
+import java.lang.reflect.Method;
 
 /** Keep the original JNI class, but request the desktop ribbon for every window size. */
 public class WriterEditorActivity extends org.libreoffice.androidlib.LOActivity {
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        Uri document = getIntent().getData();
+        if (Build.VERSION.SDK_INT < 33 && permissions.length == 1 &&
+                "android.permission.WRITE_EXTERNAL_STORAGE".equals(permissions[0]) &&
+                document != null && "content".equals(document.getScheme()) &&
+                (getIntent().getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0) {
+            // SAF already authorizes this URI. The pinned base class has a redundant
+            // pre-Android-13 storage gate. Resume its loader without inventing a
+            // platform permission or widening access; the provider still enforces I/O.
+            try (InputStream input = getContentResolver().openInputStream(document)) {
+                if (input == null) throw new IOException("Document access was revoked");
+                Method loader = org.libreoffice.androidlib.LOActivity.class.getDeclaredMethod("loadDocument");
+                loader.setAccessible(true);
+                loader.invoke(this);
+            } catch (IOException | ReflectiveOperationException | SecurityException error) {
+                android.widget.Toast.makeText(this, "Could not open this document: " + error.getMessage(),
+                        android.widget.Toast.LENGTH_LONG).show();
+                finish();
+            }
+            return;
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+    }
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.isCtrlPressed() && !event.isAltPressed() && !event.isShiftPressed() &&
                 (event.getKeyCode() == KeyEvent.KEYCODE_O || event.getKeyCode() == KeyEvent.KEYCODE_N)) {

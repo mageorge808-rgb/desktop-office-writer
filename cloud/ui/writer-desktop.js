@@ -12,7 +12,8 @@ window.addEventListener('load', function () {
 // edit shortcuts while a dialog is active or the document is read-only.
 window.addEventListener('keydown', function (event) {
     if (!window.ThisIsTheAndroidApp || !event.ctrlKey || !event.altKey || event.shiftKey ||
-            event.code !== 'KeyT' || event.repeat || event.isComposing) return;
+            event.code !== 'KeyT' || event.repeat || event.isComposing ||
+            (typeof event.getModifierState === 'function' && event.getModifierState('AltGraph'))) return;
     const map = window.app && window.app.map;
     if (!map || !map.isEditMode() || !map.stateChangeHandler ||
             map.stateChangeHandler.getItemValue('.uno:TableDialog') !== 'enabled' ||

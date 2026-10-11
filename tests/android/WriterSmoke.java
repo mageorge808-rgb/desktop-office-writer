@@ -74,8 +74,12 @@ public class WriterSmoke extends Instrumentation {
                 long deadline=SystemClock.uptimeMillis()+90000;
                 boolean saved=false;
                 while(SystemClock.uptimeMillis()<deadline) {
-                    String xml=documentXML();
-                    if(xml.contains("CI_WRITER_LOCAL_SAVE") && xml.contains("<w:tbl")) {saved=true;break;}
+                    // The provider may briefly expose the in-progress copy; poll until
+                    // a complete DOCX appears rather than failing on a transient ZIP read.
+                    try {
+                        String xml=documentXML();
+                        if(xml.contains("CI_WRITER_LOCAL_SAVE") && xml.contains("<w:tbl")) {saved=true;break;}
+                    } catch(IOException pendingSave) {}
                     Thread.sleep(1000);
                 }
                 if(!saved)throw new IOException("Native edit/table/save did not persist through the content provider");

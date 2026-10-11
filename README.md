@@ -6,18 +6,19 @@ and install `Desktop-Office-Writer-arm64.apk` on your ARM64 Android tablet (Andr
 
 This is a real offline DOCX editor using the official precompiled Collabora Office
 26.04.3.1 engine, Java implementation and document resources as a matched set.
-The workflow compiles only two small integration classes and packages the APK.
+The workflow compiles a small Java integration layer and packages the APK.
 It never compiles LibreOffice, uses no self-hosted runner, and requires no paid service.
 Use a **public GitHub repository** for free standard GitHub-hosted runner execution.
 
-First verified cloud build: https://github.com/mageorge808-rgb/desktop-office-writer/actions/runs/38125968407
-Nine tests and all APK compilation/packaging/signature checks passed. Hardware tests remain pending.
+Builds and test status: https://github.com/mageorge808-rgb/desktop-office-writer/actions
+The workflow runs unit/browser tests, Java/APK checks and native Android smoke tests.
+Physical Pad 7 mouse/keyboard acceptance remains required; this is not Microsoft Word.
 
 ## Build and download
 
 1. Open this repository's **Actions** tab. Enable workflows if GitHub asks.
 2. Select **Build Writer APK** on the left, then **Run workflow**, branch **main**.
-3. Open the new run. Tests run first, followed by APK packaging on `ubuntu-24.04`.
+3. Open the new run. Tests run first, followed by APK packaging and Android emulator checks on `ubuntu-24.04`.
 4. When both jobs are green, scroll to **Artifacts** and download
    **desktop-office-writer-arm64**. You must be signed into GitHub.
 5. Unzip the download and transfer the APK to your tablet. Allow installation from
@@ -45,7 +46,10 @@ This is a development distribution, not a production signing setup.
 
 ## Implemented source changes
 
-- DOCX-only launcher: **Open DOCX**, **New DOCX**, Ctrl+O and Ctrl+N.
+- DOCX-only launcher: **Open DOCX**, **New DOCX**, Ctrl+O and Ctrl+N, also available while editing.
+- Ctrl+Alt+T requests the native Table Properties dialog when its command is enabled.
+- Dark mode on install/upgrade; persistent appearance choice and dark launcher controls.
+- Cached, licensed Noto/DejaVu fonts; no repeated copying on every document open.
 - Android file picker and actual read/write grants; no broad all-files permission.
 - New documents copy the real upstream DOCX template into the selected local URI.
 - Real editing/save-back/export use the existing Collabora engine and Activity.
@@ -69,8 +73,9 @@ exposure. CI compiles the Java classes, repackages resources, checks the native 
 signature, verifies ARM64 ELF payloads, ZIP alignment and APK signatures, and proves
 the original engine/DEX/licenses are unchanged.
 
-These checks do **not** establish document fidelity, startup on every Android version,
-crash recovery or physical mouse/keyboard behavior. Follow `docs/device-test-plan.md`
+Native smoke checks exercise a disposable DOCX through a test-only local content
+provider, including save and reopen. They do **not** establish full document fidelity,
+startup on every Android version, crash recovery or physical mouse/keyboard behavior. Follow `docs/device-test-plan.md`
 on real hardware before treating the editor as stable. Local tests need only Python
 and Node; all Java/APK packaging is performed in the cloud.
 
