@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.res.ColorStateList;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
@@ -52,8 +53,17 @@ public class WriterLauncherActivity extends Activity {
             theme.setText(next == 2 ? "Appearance: Dark" : "Appearance: Light");
         });
         layout.addView(theme);
+        for (Button button : new Button[] {open, create, theme}) {
+            button.setTextColor(0xfff1f3f4);
+            button.setBackgroundTintList(ColorStateList.valueOf(0xff303641));
+        }
         setContentView(layout);
         open.requestFocus();
+        String requested = getIntent().getStringExtra("writer.pick");
+        if (requested != null && state == null) {
+            getIntent().removeExtra("writer.pick");
+            pick(requested.equals("new"));
+        }
     }
 
     private void pick(boolean create) {

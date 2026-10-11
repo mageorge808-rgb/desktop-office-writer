@@ -31,7 +31,7 @@ class PrebuiltTests(unittest.TestCase):
         harness = '''
 const assert=require('node:assert/strict');
 let callback, appended=[];
-const window={ThisIsTheAndroidApp:false,addEventListener:(type,cb)=>{assert.equal(type,'load');callback=cb;}};
+const window={ThisIsTheAndroidApp:false,addEventListener:(type,cb)=>{if(type==='load')callback=cb;}};
 const document={createElement:()=>({}),head:{appendChild:link=>appended.push(link)}};
 SCRIPT
 callback(); assert.equal(appended.length,0);

@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.desktopoffice.writer.smoke">
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="30"/>
+    <application android:label="Writer CI test fixture" android:allowBackup="false">
+        <provider android:name="org.desktopoffice.writer.smoke.FixtureProvider"
+            android:authorities="org.desktopoffice.writer.smoke.fixture"
+            android:exported="true" android:grantUriPermissions="true"/>
+    </application>
+    <instrumentation android:name="org.desktopoffice.writer.smoke.WriterSmoke"
+        android:targetPackage="com.collabora.libreoffice" android:label="Writer native smoke"/>
+</manifest>
+

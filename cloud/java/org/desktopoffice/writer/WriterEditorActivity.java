@@ -5,9 +5,30 @@ import android.content.res.AssetManager;
 import java.io.File;
 import java.io.IOException;
 import android.os.Bundle;
+import android.content.Intent;
+import android.view.KeyEvent;
 
 /** Keep the original JNI class, but request the desktop ribbon for every window size. */
 public class WriterEditorActivity extends org.libreoffice.androidlib.LOActivity {
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.isCtrlPressed() && !event.isAltPressed() && !event.isShiftPressed() &&
+                (event.getKeyCode() == KeyEvent.KEYCODE_O || event.getKeyCode() == KeyEvent.KEYCODE_N)) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0)
+                startActivity(new Intent(this, WriterLauncherActivity.class)
+                        .putExtra("writer.pick", event.getKeyCode() == KeyEvent.KEYCODE_N ? "new" : "open"));
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public void startActivity(Intent intent) {
+        // Upstream document switching explicitly reopens its base Activity. Keep our
+        // native ribbon/font integration when its save-and-restart path is used.
+        if (intent.getComponent() != null &&
+                intent.getComponent().getClassName().equals("org.libreoffice.androidlib.LOActivity"))
+            intent = new Intent(intent).setClass(this, WriterEditorActivity.class);
+        super.startActivity(intent);
+    }
     @Override public void onCreate(Bundle state) {
         // Apply the requested dark default on upgrade; preserve later user choices.
         android.content.SharedPreferences prefs = getSharedPreferences("EXPLORER_PREFS", MODE_PRIVATE);
