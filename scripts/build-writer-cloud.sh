@@ -21,6 +21,7 @@ PY
 python3 scripts/prebuilt.py verify-original "$WORK/original.apk"
 java -jar "$WORK/apktool.jar" decode --no-src --force --output "$WORK/decoded" "$WORK/original.apk"
 python3 scripts/prebuilt.py patch "$WORK/decoded"
+python3 scripts/package-fonts.py "$WORK/decoded" build/apk
 mkdir -p "$WORK/stubs" "$WORK/classes" "$WORK/dex"
 javac --release 8 -classpath "$ANDROID_JAR" -d "$WORK/stubs" cloud/stubs/org/libreoffice/androidlib/LOActivity.java
 javac --release 8 -classpath "$ANDROID_JAR:$WORK/stubs" -d "$WORK/classes" cloud/java/org/desktopoffice/writer/*.java
@@ -62,7 +63,7 @@ with zipfile.ZipFile('build/cloud/original.apk') as original:
 lock['customization']='DOCX launcher, inherited native Activity ribbon override, desktop Android UI assets'
 (root/'provenance.json').write_text(json.dumps(lock,indent=2))
 PY
-tar -czf build/apk/writer-modified-source.tar.gz cloud scripts/prebuilt.py scripts/build-writer-cloud.sh \
+tar -czf build/apk/writer-modified-source.tar.gz cloud scripts/prebuilt.py scripts/build-writer-cloud.sh scripts/package-fonts.py \
     prebuilt.lock.json android/common/src/main/res/drawable/office_icon.xml LICENSE NOTICE.md README.md
 echo 'Writer packaging, signature, alignment and unchanged engine/DEX checks passed.'
 

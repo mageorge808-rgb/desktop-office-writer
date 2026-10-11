@@ -38,6 +38,8 @@ jobs:
           packages: 'platform-tools'
           log-accepted-android-sdk-licenses: false
       - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Install redistributable document fonts on the cloud runner
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-dejavu-core fontconfig
       - uses: actions/cache@v4
         with:
           path: build/signing/writer-development.jks

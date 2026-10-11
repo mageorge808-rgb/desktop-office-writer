@@ -4,6 +4,7 @@ import os
 import subprocess
 import unittest
 import xml.etree.ElementTree as ET
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('prebuilt', ROOT/'scripts/prebuilt.py')
@@ -11,6 +12,34 @@ prebuilt = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prebuilt)
 
 class PrebuiltTests(unittest.TestCase):
+    def test_patch_includes_styles_and_native_font_directory(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as temp:
+            directory = Path(temp)
+            for path in ['assets/dist', 'assets/unpack/etc/fonts', 'res/values', 'res/drawable']:
+                (directory/path).mkdir(parents=True)
+            (directory/'assets/dist/global.js').write_text((ROOT/'tests/fixtures/prebuilt-global.js').read_text(encoding='utf-8'), encoding='utf-8')
+            (directory/'assets/unpack/etc/fonts/fonts.conf').write_text('<fontconfig><dir>/system/fonts</dir></fontconfig>')
+            (directory/'AndroidManifest.xml').write_text('<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.collabora.libreoffice"><application><activity android:name="org.libreoffice.androidlib.LOActivity"/></application></manifest>')
+            prebuilt.patch_decoded(directory)
+            config = ET.parse(directory/'assets/unpack/etc/fonts/fonts.conf')
+            self.assertEqual([node.text for node in config.findall('dir')], ['/system/fonts', '/data/data/com.collabora.libreoffice/user/writer-fonts'])
+            self.assertEqual((directory/'assets/dist/writer-desktop.css').read_bytes(), (ROOT/'cloud/ui/writer-desktop.css').read_bytes())
+            subprocess.run([os.environ.get('NODE_BINARY','node'), '--check', str(directory/'assets/dist/global.js')], check=True)
+
+    def test_style_loader_waits_for_native_android_and_preserves_input(self):
+        script = (ROOT/'cloud/ui/writer-desktop.js').read_text()
+        harness = '''
+const assert=require('node:assert/strict');
+let callback, appended=[];
+const window={ThisIsTheAndroidApp:false,addEventListener:(type,cb)=>{assert.equal(type,'load');callback=cb;}};
+const document={createElement:()=>({}),head:{appendChild:link=>appended.push(link)}};
+SCRIPT
+callback(); assert.equal(appended.length,0);
+window.ThisIsTheAndroidApp=true; callback();
+assert.deepEqual(appended,[{rel:'stylesheet',href:'writer-desktop.css'}]);
+'''.replace('SCRIPT', script)
+        subprocess.run([os.environ.get('NODE_BINARY','node'),'-e',harness],check=True)
+
     def test_cloud_shell_script_has_unix_line_endings(self):
         self.assertNotIn(b'\r', (ROOT/'scripts/build-writer-cloud.sh').read_bytes())
 

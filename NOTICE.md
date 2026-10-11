@@ -39,4 +39,8 @@ that every engine file uses that license; preserve the per-file and bundled-libr
 
 Original project source changes are MPL-2.0. The launcher icon is original.
 Desktop Office is an independent integration, not an official Collabora or Microsoft product.
+# Additional font packages
+
+Cloud builds include unmodified fonts from Ubuntu packages fonts-noto-core and fonts-dejavu-core. Their copyright and license texts are embedded under assets/writer-font-licenses and included in the download. Exact versions, font families and SHA-256 hashes are recorded in fonts.json. These do not include proprietary Microsoft fonts. Original engine fonts and notices remain intact.
+
 

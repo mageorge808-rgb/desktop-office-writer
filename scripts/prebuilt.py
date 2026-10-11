@@ -54,6 +54,8 @@ def manifest_writer(text):
     editor = ET.SubElement(app, 'activity', dict(base[0].attrib))
     editor.set(ANDROID + 'name', EDITOR)
     editor.set(ANDROID + 'exported', 'true')
+    editor.set(ANDROID + 'resizeableActivity', 'true')
+    editor.set(ANDROID + 'windowSoftInputMode', 'adjustResize')
     filt = ET.SubElement(editor, 'intent-filter')
     for action in ['VIEW', 'EDIT']:
         ET.SubElement(filt, 'action', {ANDROID+'name': 'android.intent.action.'+action})
@@ -121,6 +123,14 @@ def patch_decoded(directory):
     changed_js = desktop_js(js.read_text(encoding='utf-8'))
     changed_manifest = manifest_writer(manifest.read_text(encoding='utf-8'))
     js.write_text(changed_js, encoding='utf-8')
+    for name in ['writer-desktop.css', 'writer-desktop.js']:
+        (directory / 'assets/dist' / name).write_bytes((ROOT / 'cloud/ui' / name).read_bytes())
+    with js.open('a', encoding='utf-8') as stream:
+        stream.write('\n' + (ROOT / 'cloud/ui/writer-desktop.js').read_text(encoding='utf-8'))
+    fonts_config = directory / 'assets/unpack/etc/fonts/fonts.conf'
+    config = fonts_config.read_text(encoding='utf-8')
+    config = once(config, '</fontconfig>', '<dir>/data/data/com.collabora.libreoffice/user/writer-fonts</dir>\n</fontconfig>')
+    fonts_config.write_text(config, encoding='utf-8')
     manifest.write_text(changed_manifest, encoding='utf-8')
     values = directory / 'res/values/writer.xml'
     values.write_text('<resources><string name="writer_app_name">Desktop Office Writer</string></resources>', encoding='utf-8')
@@ -149,6 +159,19 @@ def verify_payload(original, result):
                 raise ValueError('Missing Writer integration class: '+owner)
         for path in ['assets/templates/untitled.docx', 'assets/dist/cool.html']:
             after.getinfo(path)
+        inventory = json.loads(after.read('assets/writer-fonts.json'))
+        if not inventory: raise ValueError('Missing additional fonts')
+        for font in inventory:
+            payload = after.read('assets/writer-fonts/' + font['file'])
+            if hashlib.sha256(payload).hexdigest() != font['sha256']:
+                raise ValueError('Font checksum mismatch: ' + font['file'])
+            after.getinfo('assets/writer-font-licenses/' + font['package'] + '-copyright.txt')
+        config = after.read('assets/unpack/etc/fonts/fonts.conf').decode('utf-8')
+        if '/data/data/com.collabora.libreoffice/user/writer-fonts' not in config:
+            raise ValueError('Native font configuration does not reference added fonts')
+        for name in ['writer-desktop.js', 'writer-desktop.css']:
+            if after.read('assets/dist/' + name) != (ROOT / 'cloud/ui' / name).read_bytes():
+                raise ValueError('Missing desktop styling: ' + name)
 
 def dex_classes(data, with_flags=False):
     def uint(offset): return struct.unpack_from('<I', data, offset)[0]

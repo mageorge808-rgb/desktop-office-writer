@@ -37,6 +37,15 @@ public class WriterLauncherActivity extends Activity {
         create.setText("New DOCX…  (Ctrl+N)");
         create.setOnClickListener(view -> pick(true));
         layout.addView(create);
+        Button theme = new Button(this);
+        android.content.SharedPreferences prefs = getSharedPreferences("EXPLORER_PREFS", MODE_PRIVATE);
+        theme.setText(prefs.getInt("NIGHT_MODE", 1) == 2 ? "Appearance: Dark" : "Appearance: Light");
+        theme.setOnClickListener(view -> {
+            int next = prefs.getInt("NIGHT_MODE", 1) == 2 ? 1 : 2;
+            prefs.edit().putInt("NIGHT_MODE", next).apply();
+            theme.setText(next == 2 ? "Appearance: Dark" : "Appearance: Light");
+        });
+        layout.addView(theme);
         setContentView(layout);
         open.requestFocus();
     }

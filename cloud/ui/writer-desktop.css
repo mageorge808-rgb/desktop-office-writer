@@ -1,0 +1,34 @@
+/* SPDX-License-Identifier: MPL-2.0 */
+/* Word-inspired chrome only: never scale the document canvas or its input layer. */
+:root {
+    --cool-font: Arial, "Liberation Sans", sans-serif;
+    --default-font-size: 13px;
+    --tb-min-fs: 12px;
+    --tb-max-fs: 14px;
+}
+button.ui-tab.notebookbar {
+    font-size: 13px;
+    padding-inline: 12px;
+}
+.notebookbar-scroll-wrapper {
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+}
+.notebookbar-tabs-container {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+label.notebookbar, span.notebookbar.static-label {
+    font-size: 12px;
+}
+@media (max-width: 900px) {
+    button.ui-tab.notebookbar { padding-inline: 8px; font-size: 12px; }
+}
+/* Pad 7 landscape (3200 x 2136), using CSS pixels after Android density scaling.
+   Match a range because system bars and window decorations change the viewport. */
+@media (min-width: 901px) and (min-aspect-ratio: 7/5) and (max-aspect-ratio: 8/5) {
+    button.ui-tab.notebookbar { padding-inline: 10px; }
+    .notebookbar-tabs-container { margin-inline-start: 4px; }
+}
+
