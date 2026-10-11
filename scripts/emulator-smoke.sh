@@ -21,6 +21,11 @@ PY
 "$TOOLS/zipalign" -f 4 "$WORK/test-unsigned.apk" "$WORK/test-aligned.apk"
 "$TOOLS/apksigner" sign --ks build/signing/writer-development.jks --ks-pass pass:android --key-pass pass:android --out "$WORK/test.apk" "$WORK/test-aligned.apk"
 adb shell getprop ro.product.cpu.abilist | tee build/apk/device-test/abis.txt
+if ! grep -q arm64-v8a build/apk/device-test/abis.txt; then
+    echo 'This emulator image cannot execute the shipping ARM64 APK.' >&2
+    exit 1
+fi
+adb shell dumpsys webviewupdate > build/apk/device-test/webview.txt
 adb shell wm size 1280x854
 adb shell wm density 160
 adb install --no-streaming -r build/apk/Desktop-Office-Writer-arm64.apk

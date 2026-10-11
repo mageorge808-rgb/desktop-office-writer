@@ -58,7 +58,9 @@ jobs:
       - name: Native Android DOCX edit and save tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
+          # Android 13's x86 image lacks ARM translation. Android 15's Google
+          # image provides it and a modern WebView; test the shipping ARM64 APK.
+          api-level: 35
           target: google_apis
           arch: x86_64
           ram-size: 4096M
