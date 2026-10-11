@@ -1,0 +1,64 @@
+name: Build Writer APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['cloud/**', 'scripts/**', 'tests/**', 'prebuilt.lock.json', '.github/workflows/**', 'android/common/src/main/res/drawable/office_icon.xml']
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: writer-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: python -m unittest discover -s tests -v
+      - run: bash -n scripts/build-writer-cloud.sh
+  apk:
+    if: github.event_name != 'pull_request'
+    needs: tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: actions/cache@v4
+        with:
+          path: build/signing/writer-development.jks
+          key: writer-development-signing-v1
+      - run: bash scripts/build-writer-cloud.sh
+      - name: Keep the latest Writer artifact within the free storage allowance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$REPOSITORY/actions/artifacts" --jq '.artifacts[] | select(.name == "desktop-office-writer-arm64") | .id' |
+          while read -r artifact; do
+            gh api --method DELETE "repos/$REPOSITORY/actions/artifacts/$artifact"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-office-writer-arm64
+          path: build/apk/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Download instructions
+        run: |
+          echo '### Writer APK ready' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Download **desktop-office-writer-arm64** from Artifacts, unzip it, and install Desktop-Office-Writer-arm64.apk.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Development build: retains the upstream package ID; back up documents and uninstall official Collabora first. Physical-input acceptance tests remain required.' >> "$GITHUB_STEP_SUMMARY"
+
