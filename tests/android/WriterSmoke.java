@@ -50,35 +50,52 @@ public class WriterSmoke extends Instrumentation {
             // The provider may briefly expose the in-progress copy.
             try {
                 String xml=documentXML();
-                if(xml.contains(marker) && (!table || xml.contains("<w:tbl")))return;
-            } catch(IOException pendingSave) {}
+                if(documentText(xml).contains(marker) && (!table || xml.contains("<w:tbl")))return;
+            } catch(IOException | org.xml.sax.SAXException pendingSave) {}
             Thread.sleep(1000);
         }
         throw new IOException("Native editing/save did not persist marker: "+marker);
     }
-    private boolean markerIsBold(String marker) throws Exception {
+    private Document parsedDocument(String xml) throws Exception {
         DocumentBuilderFactory factory=DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
-        Document document=factory.newDocumentBuilder().parse(new ByteArrayInputStream(documentXML().getBytes("UTF-8")));
+        return factory.newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes("UTF-8")));
+    }
+    private String documentText(String xml) throws Exception {
+        NodeList text=parsedDocument(xml).getElementsByTagNameNS("http://schemas.openxmlformats.org/wordprocessingml/2006/main","t");
+        StringBuilder result=new StringBuilder();
+        for(int i=0;i<text.getLength();i++)result.append(text.item(i).getTextContent());
+        return result.toString();
+    }
+    private boolean markerIsBold(String marker) throws Exception {
+        Document document=parsedDocument(documentXML());
         String namespace="http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         NodeList runs=document.getElementsByTagNameNS(namespace,"r");
+        StringBuilder plain=new StringBuilder(), boldMask=new StringBuilder();
         for(int i=0;i<runs.getLength();i++) {
             Element run=(Element)runs.item(i);
-            if(run.getTextContent().contains(marker)) {
-                NodeList bold=run.getElementsByTagNameNS(namespace,"b");
-                if(bold.getLength()>0) {
-                    String value=((Element)bold.item(0)).getAttributeNS(namespace,"val");
-                    return !value.equals("0") && !value.equals("false") && !value.equals("off");
-                }
+            NodeList bold=run.getElementsByTagNameNS(namespace,"b");
+            boolean enabled=false;
+            if(bold.getLength()>0) {
+                String value=((Element)bold.item(0)).getAttributeNS(namespace,"val");
+                enabled=!value.equals("0") && !value.equals("false") && !value.equals("off");
+            }
+            NodeList text=run.getElementsByTagNameNS(namespace,"t");
+            for(int j=0;j<text.getLength();j++) {
+                String value=text.item(j).getTextContent(); plain.append(value);
+                for(int k=0;k<value.length();k++)boldMask.append(enabled?'1':'0');
             }
         }
-        return false;
+        int start=plain.indexOf(marker);
+        if(start<0)return false;
+        for(int i=start;i<start+marker.length();i++)if(boldMask.charAt(i)!='1')return false;
+        return true;
     }
     private void capture() {
         try {
             File directory=getTargetContext().getExternalFilesDir(null);
             if(web!=null)try(OutputStream output=new FileOutputStream(new File(directory,"native-"+phase+"-state.txt"))) {
-                String state=eval("JSON.stringify({app:!!window.app,map:!!(window.app&&app.map),loaded:window.app&&app.map&&app.map._docLoaded,mode:window.app&&app.map&&app.map.isEditMode(),dialogs:Array.from(document.querySelectorAll('.jsdialog-window')).map(el=>({id:el.id,visible:!!el.offsetWidth})),text:document.body.innerText.slice(-1600)})");
+                String state=eval("JSON.stringify({app:!!window.app,map:!!(window.app&&app.map),loaded:window.app&&app.map&&app.map._docLoaded,mode:window.app&&app.map&&app.map.isEditMode(),dialogs:Array.from(document.querySelectorAll('.jsdialog-window')).map(el=>({id:el.id,visible:!!el.offsetWidth})),keys:window.__writerSmokeKeys||[],text:document.body.innerText.slice(-1600)})");
                 output.write(state.getBytes("UTF-8"));
             }
             // Keep the tiny generated document alongside the screenshot so a
@@ -153,6 +170,7 @@ public class WriterSmoke extends Instrumentation {
             } else if(!documentXML().contains("CI_WRITER_LOCAL_SAVE"))throw new IOException("Saved marker missing on reopen");
             if(phase.equals("keyboard")) {
                 runOnMainSync(()->web.requestFocus());
+                eval("window.__writerSmokeKeys=[];window.addEventListener('keydown',e=>{if(__writerSmokeKeys.length<80)__writerSmokeKeys.push({key:e.key,code:e.code,keyCode:e.keyCode,ctrl:e.ctrlKey,alt:e.altKey,altGraph:e.getModifierState('AltGraph')});},true);true");
                 // Emulated devices can report only an on-screen keyboard. Accept
                 // input explicitly, as a real click into the document does.
                 eval("app.map.focus(true); true");
