@@ -2,6 +2,22 @@
 // Load after the original styles. Keep native input, canvas coordinates and UNO commands intact.
 window.addEventListener('load', function () {
     if (!window.ThisIsTheAndroidApp) return;
+    // The upstream Styles gallery cannot fold, so it pushes Font/Paragraph into
+    // menus even on a wide tablet. Let the existing overflow manager fold that
+    // gallery first; its original controls and responsive resize logic remain.
+    const writer = window.L && window.L.Control && window.L.Control.NotebookbarWriter;
+    if (writer && typeof writer.prototype.getHomeTab === 'function') {
+        const originalHome = writer.prototype.getHomeTab;
+        writer.prototype.getHomeTab = function () {
+            const tab = originalHome.apply(this, arguments);
+            function visit(item) {
+                if (item.id === 'home-stylesview-group') item.nofold = false;
+                if (Array.isArray(item.children)) item.children.forEach(visit);
+            }
+            visit(tab);
+            return tab;
+        };
+    }
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'writer-desktop.css';

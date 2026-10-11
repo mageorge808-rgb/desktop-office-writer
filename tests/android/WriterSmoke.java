@@ -107,10 +107,13 @@ public class WriterSmoke extends Instrumentation {
     }
     private void waitReady() throws Exception {
         long deadline=SystemClock.uptimeMillis()+240000;
+        // Match the painter's page-layout path. Its generic haveAllTilesInView()
+        // includes off-document coordinates and omits Writer's active tile mode.
+        String painted="(()=>{const layout=app.activeDocument.activeLayout; if(layout.type==='ViewLayoutMultiPage') {const coords=layout.getCurrentCoordList(); return coords.length>0&&coords.every(c=>{const t=RenderManager.get(c);return !!t&&t.isReadyToDraw();});} const section=app.map._docLayer._painter._tilesSection;let needed=0,ready=true;section.forEachTileInView(Math.round(app.map.getZoom()),app.map._docLayer.getSelectedPart(),app.activeDocument.activeModes[0],section.sectionProperties.tsManager._paintContext(),(tile,coords)=>{if(RenderManager.isValidTile(coords)){needed++;if(!tile||!tile.isReadyToDraw())ready=false;}return true;});return needed>0&&ready;})()";
         while(SystemClock.uptimeMillis()<deadline) {
             runOnMainSync(()->web=findWeb(editor.getWindow().getDecorView()));
             String mode=phase.equals("readonly") ? "!app.map.isEditMode()" : "app.map.isEditMode()";
-            if(web!=null && "true".equals(eval("Boolean(window.app && app.map && app.map._docLoaded && app.map._docLayer && app.map.getDocType()==='text' && "+mode+" && app.map._docLayer._painter && app.map._docLayer._painter._tilesSection && app.map._docLayer._painter._tilesSection.haveAllTilesInView())")))return;
+            if(web!=null && "true".equals(eval("Boolean(window.app && app.map && app.map._docLoaded && app.map._docLayer && app.map.getDocType()==='text' && "+mode+" && app.map._docLayer._painter && app.map._docLayer._painter._tilesSection && "+painted+")")))return;
             Thread.sleep(1000);
         }
         throw new IOException("Native Writer document did not become editable in four minutes");
@@ -137,6 +140,8 @@ public class WriterSmoke extends Instrumentation {
                 }
                 if(!fonts)throw new IOException("The real engine font list is missing packaged Noto/DejaVu fonts");
                 results.putString("fonts","Noto Sans; DejaVu Sans");
+                if(!"true".equals(eval("(()=>{const font=document.getElementById('fontnamecombobox');const paragraph=document.getElementById('home-left-para');return !!font&&!!paragraph&&font.offsetWidth>0&&paragraph.offsetWidth>0;})()")))
+                    throw new IOException("Font/Paragraph controls are hidden in the full-width desktop Home ribbon");
                 eval("app.map.sendUnoCommand('.uno:InsertText',{Text:{type:'string',value:'CI_WRITER_LOCAL_SAVE'}}); true");
                 Thread.sleep(1500);
                 eval("app.map.sendUnoCommand('.uno:InsertTable?Columns=3&Rows=2'); true");
