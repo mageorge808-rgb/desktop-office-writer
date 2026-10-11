@@ -1,12 +1,12 @@
 # Desktop Office Writer — free cloud APK build
 
-**Press Actions → Build Writer APK → Run workflow.** Download
-`desktop-office-writer-arm64` from the finished run's Artifacts section, unzip it,
-and install `Desktop-Office-Writer-arm64.apk` on your ARM64 Android tablet (Android 8+).
+**[Download the latest tested Writer APK](https://github.com/mageorge808-rgb/desktop-office-writer/releases/latest/download/Desktop-Office-Writer-arm64.apk).**
+Open the downloaded file on your ARM64 Android tablet and allow installation from
+your browser/file manager if Android asks. No ZIP extraction is required.
 
-After a tested main-branch build is published, the APK is also available directly from
+Source, licenses, checksums and build notes accompany
 [the latest development release](https://github.com/mageorge808-rgb/desktop-office-writer/releases/latest).
-This release download does not expire after one day and does not require unzipping an Actions artifact.
+Release downloads do not use the one-day Actions artifact retention.
 
 This is a real offline DOCX editor using the official precompiled Collabora Office
 26.04.3.1 engine, Java implementation and document resources as a matched set.
@@ -23,17 +23,17 @@ Physical Pad 7 mouse/keyboard acceptance remains required; this is not Microsoft
 1. Open this repository's **Actions** tab. Enable workflows if GitHub asks.
 2. Select **Build Writer APK** on the left, then **Run workflow**, branch **main**.
 3. Open the new run. Tests run first, followed by APK packaging and Android emulator checks on `ubuntu-24.04`.
-4. When both jobs are green, scroll to **Artifacts** and download
-   **desktop-office-writer-arm64**. You must be signed into GitHub.
-5. Unzip the download and transfer the APK to your tablet. Allow installation from
-   that browser/file manager when Android asks.
+4. When both jobs are green, open **Releases → Latest** and download
+   **Desktop-Office-Writer-arm64.apk** directly. Main-branch builds publish this automatically.
+5. Open the APK on your tablet. Allow installation from that browser/file manager
+   when Android asks. The Actions artifact is an alternative ZIP download for signed-in users.
 
 Pushes to main that change the build also generate an APK automatically.
-Only the latest Writer artifact is retained, for **one day**, to keep artifact storage
-below the free allowance. Download it promptly; rerun the workflow if it expires.
+Only the latest Actions Writer artifact is retained, for **one day**, to keep artifact storage
+below the free allowance. The tested APK in Releases remains available after that artifact expires.
 The archive includes checksums, license/NOTICE files, signature/alignment reports,
-binary provenance and all modified source. APK size is approximately 255 MiB plus
-small integration changes; final size is measured by the build.
+binary provenance and all modified source. The verified build of 2026-10-11 is
+287,995,928 bytes (approximately 275 MiB); future build sizes are measured by CI.
 
 ## Installation identity and signing
 
@@ -85,6 +85,17 @@ startup on every Android version, crash recovery or physical mouse/keyboard beha
 on real hardware before treating the editor as stable. Local tests need only Python
 and Node; all Java/APK packaging is performed in the cloud.
 
+Run [38133351166](https://github.com/mageorge808-rgb/desktop-office-writer/actions/runs/38133351166)
+passed all 14 unit/browser tests and the four native phases (edit/save, reopen,
+keyboard, read-only) with the shipping ARM64 APK on Android 15. Native checks also
+confirm rendered page tiles, Noto Sans/DejaVu Sans in the engine's font list, and
+visible Home Font/Paragraph controls with a populated Styles gallery. These checks
+do not measure speed or input behavior on a physical Pad 7.
+
+Known issue: actual black table borders still have poor contrast against a dark
+document page. The insertion picker is improved, and Ctrl+Alt+T opens the real Table
+Properties dialog; the document-border rendering issue remains open.
+
 ## Licenses and source
 
 Our changes are MPL-2.0. Original binaries retain their own licenses and the entire
@@ -97,4 +108,3 @@ Official distribution: https://www.collaboraoffice.com/downloads/fdroid/repo/
 Official source/build documentation: https://github.com/CollaboraOnline/online.mirror
 Matching precompiled release source: https://github.com/CollaboraOnline/online.mirror/tree/20a46c332c380925803a1fe538a545c6f9b8fce7
 GitHub free runners: https://docs.github.com/en/actions/reference/runners/github-hosted-runners
-
