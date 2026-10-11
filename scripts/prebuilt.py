@@ -150,19 +150,19 @@ def verify_payload(original, result):
         for path in ['assets/templates/untitled.docx', 'assets/dist/cool.html']:
             after.getinfo(path)
 
-def dex_classes(data):
+def dex_classes(data, with_flags=False):
     def uint(offset): return struct.unpack_from('<I', data, offset)[0]
     string_offset, type_offset = uint(60), uint(68)
     count, offset = struct.unpack_from('<II', data, 96)
-    result = set()
+    result = {}
     for i in range(count):
         type_id = uint(offset+i*32)
         string_id = uint(type_offset+type_id*4)
         position = uint(string_offset+string_id*4)
         while data[position] & 128: position += 1
         position += 1
-        result.add(data[position:data.index(0, position)].decode('utf-8'))
-    return result
+        result[data[position:data.index(0, position)].decode('utf-8')] = uint(offset+i*32+4)
+    return result if with_flags else set(result)
 
 if __name__ == '__main__':
     import sys

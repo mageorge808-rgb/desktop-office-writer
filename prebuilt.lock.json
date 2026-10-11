@@ -5,6 +5,8 @@
   "url": "https://www.collaboraoffice.com/downloads/fdroid/repo/collabora-office-mobile-26.04.3.1-155-release-arm64-v8a-2026-09-03.apk",
   "sha256": "b7ab381de96f429c2e762d0e54ee0fac7db03ad2fecfede9f4c558c767d18513",
   "engine_buildid": "20a46c332c38",
+  "engine_source_revision": "20a46c332c380925803a1fe538a545c6f9b8fce7",
+  "engine_source_url": "https://github.com/CollaboraOnline/online.mirror/tree/20a46c332c380925803a1fe538a545c6f9b8fce7",
   "apktool_url": "https://github.com/iBotPeaches/Apktool/releases/download/v2.12.1/apktool_2.12.1.jar",
   "apktool_sha256": "66cf4524a4a45a7f56567d08b2c9b6ec237bcdd78cee69fd4a59c8a0243aeafa"
 }
