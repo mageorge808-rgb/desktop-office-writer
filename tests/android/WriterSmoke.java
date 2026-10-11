@@ -11,6 +11,8 @@ import java.io.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.*;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.*;
 
 public class WriterSmoke extends Instrumentation {
     private Activity editor;
@@ -30,6 +32,60 @@ public class WriterSmoke extends Instrumentation {
         runOnMainSync(()->web.evaluateJavascript(script,value->{result.set(value);done.countDown();}));
         if(!done.await(15,TimeUnit.SECONDS))throw new IOException("WebView evaluation timed out");
         return result.get();
+    }
+    private void keyChord(int keyCode, boolean alt) {
+        int meta=KeyEvent.META_CTRL_ON|KeyEvent.META_CTRL_LEFT_ON;
+        if(alt)meta|=KeyEvent.META_ALT_ON|KeyEvent.META_ALT_LEFT_ON;
+        long now=SystemClock.uptimeMillis();
+        sendKeySync(new KeyEvent(now,now,KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_CTRL_LEFT,0,meta));
+        if(alt)sendKeySync(new KeyEvent(now,now,KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_ALT_LEFT,0,meta));
+        sendKeySync(new KeyEvent(now,now,KeyEvent.ACTION_DOWN,keyCode,0,meta));
+        sendKeySync(new KeyEvent(now,now,KeyEvent.ACTION_UP,keyCode,0,meta));
+        if(alt)sendKeySync(new KeyEvent(now,now,KeyEvent.ACTION_UP,KeyEvent.KEYCODE_ALT_LEFT,0,KeyEvent.META_CTRL_ON));
+        sendKeySync(new KeyEvent(now,now,KeyEvent.ACTION_UP,KeyEvent.KEYCODE_CTRL_LEFT,0,0));
+    }
+    private void waitSaved(String marker, boolean table) throws Exception {
+        long deadline=SystemClock.uptimeMillis()+90000;
+        while(SystemClock.uptimeMillis()<deadline) {
+            // The provider may briefly expose the in-progress copy.
+            try {
+                String xml=documentXML();
+                if(xml.contains(marker) && (!table || xml.contains("<w:tbl")))return;
+            } catch(IOException pendingSave) {}
+            Thread.sleep(1000);
+        }
+        throw new IOException("Native editing/save did not persist marker: "+marker);
+    }
+    private boolean markerIsBold(String marker) throws Exception {
+        DocumentBuilderFactory factory=DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        Document document=factory.newDocumentBuilder().parse(new ByteArrayInputStream(documentXML().getBytes("UTF-8")));
+        String namespace="http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        NodeList runs=document.getElementsByTagNameNS(namespace,"r");
+        for(int i=0;i<runs.getLength();i++) {
+            Element run=(Element)runs.item(i);
+            if(run.getTextContent().contains(marker)) {
+                NodeList bold=run.getElementsByTagNameNS(namespace,"b");
+                if(bold.getLength()>0) {
+                    String value=((Element)bold.item(0)).getAttributeNS(namespace,"val");
+                    return !value.equals("0") && !value.equals("false") && !value.equals("off");
+                }
+            }
+        }
+        return false;
+    }
+    private void capture() {
+        try {
+            File directory=getTargetContext().getExternalFilesDir(null);
+            if(web!=null)try(OutputStream output=new FileOutputStream(new File(directory,"native-"+phase+"-state.txt"))) {
+                String state=eval("JSON.stringify({app:!!window.app,map:!!(window.app&&app.map),loaded:window.app&&app.map&&app.map._docLoaded,mode:window.app&&app.map&&app.map.isEditMode(),dialogs:Array.from(document.querySelectorAll('.jsdialog-window')).map(el=>({id:el.id,visible:!!el.offsetWidth})),text:document.body.innerText.slice(-1600)})");
+                output.write(state.getBytes("UTF-8"));
+            }
+            Bitmap screenshot=getUiAutomation().takeScreenshot();
+            if(screenshot!=null)try(OutputStream output=new FileOutputStream(new File(directory,"native-"+phase+".png"))) {
+                screenshot.compress(Bitmap.CompressFormat.PNG,100,output); screenshot.recycle();
+            }
+        } catch(Exception captureFailure) {}
     }
     private String documentXML() throws IOException {
         try(ZipInputStream zip=new ZipInputStream(getTargetContext().getContentResolver().openInputStream(fixture))) {
@@ -71,25 +127,34 @@ public class WriterSmoke extends Instrumentation {
                 eval("app.map.sendUnoCommand('.uno:InsertTable?Columns=3&Rows=2'); true");
                 Thread.sleep(2000);
                 eval("app.map.save(false,false); true");
-                long deadline=SystemClock.uptimeMillis()+90000;
-                boolean saved=false;
-                while(SystemClock.uptimeMillis()<deadline) {
-                    // The provider may briefly expose the in-progress copy; poll until
-                    // a complete DOCX appears rather than failing on a transient ZIP read.
-                    try {
-                        String xml=documentXML();
-                        if(xml.contains("CI_WRITER_LOCAL_SAVE") && xml.contains("<w:tbl")) {saved=true;break;}
-                    } catch(IOException pendingSave) {}
-                    Thread.sleep(1000);
-                }
-                if(!saved)throw new IOException("Native edit/table/save did not persist through the content provider");
+                waitSaved("CI_WRITER_LOCAL_SAVE",true);
             } else if(!documentXML().contains("CI_WRITER_LOCAL_SAVE"))throw new IOException("Saved marker missing on reopen");
-            Bitmap screenshot=getUiAutomation().takeScreenshot();
-            if(screenshot!=null)try(OutputStream output=new FileOutputStream(new File(getTargetContext().getExternalFilesDir(null),"native-"+phase+".png"))) {
-                screenshot.compress(Bitmap.CompressFormat.PNG,100,output); screenshot.recycle();
+            if(phase.equals("keyboard")) {
+                eval("app.map.focus(); true");
+                Thread.sleep(1000);
+                keyChord(KeyEvent.KEYCODE_MOVE_END,false);
+                keyChord(KeyEvent.KEYCODE_B,false);
+                KeyEvent[] typing=KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD).getEvents(" ci_keyboard ".toCharArray());
+                if(typing==null)throw new IOException("Emulator has no keyboard event mapping");
+                for(KeyEvent event:typing)sendKeySync(event);
+                keyChord(KeyEvent.KEYCODE_B,false);
+                keyChord(KeyEvent.KEYCODE_S,false);
+                waitSaved("ci_keyboard",true);
+                if(!markerIsBold("ci_keyboard"))throw new IOException("Ctrl+B did not persist bold keyboard text");
+                if(!"true".equals(eval("app.map.stateChangeHandler.getItemValue('.uno:TableDialog')==='enabled'")))
+                    throw new IOException("Table Properties command is unavailable inside the table");
+                keyChord(KeyEvent.KEYCODE_T,true);
+                long dialogDeadline=SystemClock.uptimeMillis()+15000;
+                boolean dialog=false;
+                while(SystemClock.uptimeMillis()<dialogDeadline) {
+                    if("true".equals(eval("Boolean(Array.from(document.querySelectorAll('.jsdialog-window:not(.modalpopup), .lokdialog_container')).find(el=>el.offsetWidth>0))"))) {dialog=true;break;}
+                    Thread.sleep(500);
+                }
+                if(!dialog)throw new IOException("Ctrl+Alt+T did not open the native Table Properties dialog");
             }
+            capture();
             results.putString("status","PASS "+phase); finish(Activity.RESULT_OK,results);
-        } catch(Throwable error) { results.putString("status","FAIL "+phase+": "+error); finish(Activity.RESULT_CANCELED,results); }
+        } catch(Throwable error) { capture(); results.putString("status","FAIL "+phase+": "+error); finish(Activity.RESULT_CANCELED,results); }
     }
 }
 

@@ -1,6 +1,6 @@
 # Word-inspired desktop refinement
 
-This build keeps the Collabora engine and real editing commands. It adds smaller ribbon labels, horizontally scrollable tabs in narrow windows, a light-paper default and a persistent Light/Dark choice in the launcher. It does not clone Microsoft Word or imply identical features or document layout.
+This build keeps the Collabora engine and real editing commands. It adds smaller ribbon labels, horizontally scrollable tabs in narrow windows, a dark-mode default and a persistent Light/Dark choice in the launcher. It does not clone Microsoft Word or imply identical features or document layout.
 
 The primary acceptance device is Xiaomi Pad 7: user-reported 3200 × 2136 pixels, approximately 3:2. Styling uses density-aware CSS widths and a landscape aspect-ratio range rather than a fixed 3200-pixel canvas. The editor remains resizable and requests keyboard resize. No forced orientation or document-canvas scaling is introduced. Test full-screen landscape, portrait, half-screen and floating windows on this device; Android/HyperOS controls their available bounds. Physical-device behavior is not yet verified.
 

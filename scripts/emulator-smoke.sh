@@ -5,7 +5,11 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 WORK="$ROOT/build/smoke"
 mkdir -p "$WORK/classes" "$WORK/dex" "$WORK/assets" build/apk/device-test
-trap 'adb logcat -d > build/apk/device-test/logcat.txt || true' EXIT
+capture_diagnostics() {
+    adb logcat -d > build/apk/device-test/logcat.txt || true
+    adb pull /sdcard/Android/data/com.collabora.libreoffice/files/. build/apk/device-test/ >/dev/null 2>&1 || true
+}
+trap capture_diagnostics EXIT
 TOOLS="$ANDROID_HOME/build-tools/35.0.0"
 JAR="$ANDROID_HOME/platforms/android-35/android.jar"
 unzip -p build/cloud/original.apk assets/templates/untitled.docx > "$WORK/assets/fixture.docx"
@@ -31,7 +35,7 @@ adb shell wm density 160
 adb install --no-streaming -r build/apk/Desktop-Office-Writer-arm64.apk
 adb install --no-streaming -r "$WORK/test.apk"
 adb logcat -c
-for phase in edit reopen readonly; do
+for phase in edit reopen keyboard readonly; do
     adb shell am force-stop com.collabora.libreoffice
     timeout 420 adb shell am instrument -w -e phase "$phase" org.desktopoffice.writer.smoke/.WriterSmoke | tee "build/apk/device-test/$phase.txt"
     grep -q "status=PASS $phase" "build/apk/device-test/$phase.txt"

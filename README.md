@@ -74,7 +74,8 @@ signature, verifies ARM64 ELF payloads, ZIP alignment and APK signatures, and pr
 the original engine/DEX/licenses are unchanged.
 
 Native smoke checks exercise a disposable DOCX through a test-only local content
-provider, including save and reopen. They do **not** establish full document fidelity,
+provider, including save and reopen. Native keyboard events also check typing,
+Ctrl+B formatting, Ctrl+S save-back and Ctrl+Alt+T table properties. They do **not** establish full document fidelity,
 startup on every Android version, crash recovery or physical mouse/keyboard behavior. Follow `docs/device-test-plan.md`
 on real hardware before treating the editor as stable. Local tests need only Python
 and Node; all Java/APK packaging is performed in the cloud.
